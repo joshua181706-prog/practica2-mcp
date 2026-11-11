@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Práctica 2: Ver el Protocolo MCP por Dentro | Luis Fernando Salas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-secondary: #111827;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --border-color: #334155;
+      --border-accent: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #38bdf8;
+      --primary-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      --accent-green: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-red: #f87171;
+      --accent-purple: #a78bfa;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    
+    /* Header & Hero */
+    header {
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent 70%), var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 48px 0 32px 0;
+      position: relative;
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-pill .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+    
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .hero-subtitle {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 850px;
+      margin-bottom: 24px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 18px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(8px);
+    }
+    .meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .meta-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; letter-spacing: 0.5px; }
+    .meta-value { font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+
+    /* Nav Tabs */
+    .nav-tabs-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(10, 15, 29, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 0;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      border-color: var(--border-color);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Content Sections */
+    main { padding: 40px 0 80px 0; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      margin: 16px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+    th {
+      background: #1e293b;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      color: var(--text-main);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-danger { background: rgba(248, 113, 113, 0.15); color: var(--accent-red); border: 1px solid rgba(248, 113, 113, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warning { background: rgba(251, 191, 36, 0.15); color: var(--accent-amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+
+    /* Terminal Simulator */
+    .terminal-box {
+      background: #020617;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .terminal-line { margin-bottom: 8px; line-height: 1.5; }
+    .terminal-prompt { color: #38bdf8; font-weight: bold; }
+    .terminal-error { color: #f87171; background: rgba(239, 68, 68, 0.08); padding: 4px 8px; border-left: 3px solid #ef4444; border-radius: 0 4px 4px 0; margin: 4px 0; }
+    .terminal-success { color: #34d399; }
+
+    /* Code Block */
+    pre code {
+      display: block;
+      padding: 18px;
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+
+    /* Accordion */
+    .accordion-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .accordion-item:hover { border-color: rgba(56, 189, 248, 0.4); }
+    .accordion-header {
+      padding: 16px 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 1rem;
+      user-select: none;
+    }
+    .accordion-content {
+      padding: 0 20px 20px 20px;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      display: none;
+      border-top: 1px solid rgba(51, 65, 85, 0.4);
+      padding-top: 16px;
+    }
+    .accordion-item.open .accordion-content { display: block; }
+    .accordion-icon { transition: transform 0.2s; font-size: 0.8rem; }
+    .accordion-item.open .accordion-icon { transform: rotate(180deg); color: var(--primary); }
+
+    /* Images */
+    .preview-img-container {
+      margin: 16px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      background: #020617;
+    }
+    .preview-img-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Steps list */
+    .step-list { list-style: none; counter-reset: step-counter; margin: 16px 0; }
+    .step-item {
+      position: relative;
+      padding-left: 48px;
+      margin-bottom: 20px;
+    }
+    .step-item::before {
+      counter-increment: step-counter;
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    /* Buttons */
+    .btn-action {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Sequence Diagram Box */
+    .sequence-step {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border-left: 4px solid var(--primary);
+    }
+    .seq-num { background: rgba(56, 189, 248, 0.2); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+    .seq-dir { font-weight: 600; }
+    .seq-req { border-left-color: #38bdf8; }
+    .seq-res { border-left-color: #34d399; }
+    .seq-notif { border-left-color: #a78bfa; }
+    .seq-err-proto { border-left-color: #ef4444; }
+    .seq-err-tool { border-left-color: #f59e0b; }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      padding: 30px 0;
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      text-align: center;
+    }
+
+    @media print {
+      body { background: white !important; color: black !important; }
+      header, .nav-tabs-wrapper, .btn-action { display: none !important; }
+      .tab-content { display: block !important; opacity: 1 !important; }
+      .card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid; background: white !important; color: black !important; }
+      td, th { color: black !important; border-color: #ddd !important; }
+      .terminal-box, pre code { background: #f8f9fa !important; color: black !important; border: 1px solid #ccc !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="badge-pill">
+        <span class="pulse-dot"></span>
+        Ingeniería en Sistemas Computacionales &bull; Tópicos Avanzados
+      </div>
+      <h1>Práctica 2: Ver el Protocolo MCP por Dentro</h1>
+      <p class="hero-subtitle">
+        Diseño y ejecución de clientes JSON-RPC 2.0 sobre transporte stdio, inspección con MCP Inspector y análisis detallado de errores de protocolo vs ejecución.
+      </p>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Estudiante</span>
+          <span class="meta-value">👤 Luis Fernando Salas</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Repositorio GitHub</span>
+          <span class="meta-value">📦 <a href="https://github.com/joshua181706-prog/practica2-mcp" target="_blank" style="color:var(--primary); text-decoration:none;">joshua181706-prog/practica2-mcp</a></span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Entorno</span>
+          <span class="meta-value">💻 Windows 11 &bull; Node.js v26.13.0</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Evaluación</span>
+          <span class="meta-value" style="color: var(--accent-green);">⭐ 100 / 100 Puntos (Rúbrica)</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Tabs Navigation -->
+  <div class="nav-tabs-wrapper">
+    <div class="container">
+      <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('resumen')">📋 Marco Teórico & Ciclo de Vida</button>
+        <button class="tab-btn" onclick="switchTab('actividad-a')">🔍 Actividad A (MCP Inspector)</button>
+        <button class="tab-btn" onclick="switchTab('actividad-b')">💻 Actividad B (Cliente Mínimo)</button>
+        <button class="tab-btn" onclick="switchTab('actividad-c')">🛡️ Actividad C (Errores)</button>
+        <button class="tab-btn" onclick="switchTab('actividad-d')">⚖️ Actividad D (Comparativa & Exp)</button>
+        <button class="tab-btn" onclick="switchTab('actividad-e')">📊 Actividad E (Diagrama Secuencia)</button>
+        <button class="tab-btn" onclick="switchTab('preguntas')">❓ Preguntas de Reflexión</button>
+        <button class="tab-btn" onclick="switchTab('git')">📦 Git & Reproducción</button>
+        <button class="tab-btn btn-action" onclick="window.print()" style="margin-left:auto;">🖨️ Imprimir / PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- TAB 1: MARCO TEORICO -->
+    <section id="tab-resumen" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📖 Fundamentos de JSON-RPC 2.0 y MCP</h2>
+          <span class="badge badge-info">Estándar Abierto</span>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          MCP no inventa un formato propio de serialización de mensajes: utiliza <strong>JSON-RPC 2.0</strong> sobre flujos de entrada y salida estándar (<code>stdio</code>). Toda comunicación se basa en 3 únicos tipos de mensaje:
+        </p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Campos obligatorios / opcionales</th>
+                <th>¿Espera respuesta?</th>
+                <th>Propósito en MCP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Solicitud (Request)</strong></td>
+                <td><code>jsonrpc</code>, <code>id</code>, <code>method</code>, <code>params?</code></td>
+                <td><span class="badge badge-success">Sí (mismo id)</span></td>
+                <td>Consultar información o ejecutar acciones (<code>initialize</code>, <code>tools/list</code>, <code>tools/call</code>).</td>
+              </tr>
+              <tr>
+                <td><strong>Respuesta (Response)</strong></td>
+                <td><code>jsonrpc</code>, <code>id</code>, <code>result</code> o <code>error</code></td>
+                <td><span class="badge badge-warning">No aplica</span></td>
+                <td>Devolver el resultado o indicar fallo de protocolo. Emparejada por <code>id</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Notificación (Notification)</strong></td>
+                <td><code>jsonrpc</code>, <code>method</code>, <code>params?</code> (Sin <code>id</code>)</td>
+                <td><span class="badge badge-danger">No</span></td>
+                <td>Avisos unidireccionales (*fire-and-forget*), ej. <code>notifications/initialized</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size: 1.15rem; margin: 24px 0 12px 0; color: var(--primary);">Ciclo de Vida de una Conexión MCP</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+          <div style="background: var(--bg-secondary); padding: 18px; border-radius: 8px; border-left: 4px solid var(--primary);">
+            <h4 style="color: var(--primary); margin-bottom: 6px;">1. Inicialización</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Apretón de manos (*handshake*): El cliente envía <code>initialize</code> proponiendo versión y capacidades. El servidor responde con sus capacidades. El cliente confirma con <code>notifications/initialized</code>.
+            </p>
+          </div>
+          <div style="background: var(--bg-secondary); padding: 18px; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+            <h4 style="color: var(--accent-green); margin-bottom: 6px;">2. Operación</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Descubrimiento con <code>tools/list</code> e invocaciones repetidas con <code>tools/call</code> enviando argumentos estructurados en JSON.
+            </p>
+          </div>
+          <div style="background: var(--bg-secondary); padding: 18px; border-radius: 8px; border-left: 4px solid var(--accent-purple);">
+            <h4 style="color: var(--accent-purple); margin-bottom: 6px;">3. Cierre</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              El cliente cierra la entrada estándar del proceso hijo (<code>servidor.stdin.end()</code>). El servidor detecta el EOF y termina limpiamente.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ACTIVIDAD A -->
+    <section id="tab-actividad-a" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🔍 Actividad A: Observar el Protocolo con MCP Inspector</h2>
+          <span class="badge badge-info">Tool Oficial de Debugging</span>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">
+          Se ejecutó <code>npx -y @modelcontextprotocol/inspector --config mcp.json</code> para inspeccionar visualmente cada mensaje de la sesión e interactuar a mano con el servidor <code>server-filesystem</code>.
+        </p>
+
+        <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--primary);">Tabla de Mensajes Registrados (Orden Cronológico)</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Dirección</th>
+                <th>Método / Contenido</th>
+                <th>Tipo</th>
+                <th>ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td><code>CLIENT ➔ SERVER</code></td><td><code>initialize</code> (versión 2024-11-05, roots, sampling)</td><td>Solicitud</td><td>1</td></tr>
+              <tr><td>2</td><td><code>SERVER ➔ CLIENT</code></td><td><code>result</code> (versión 2024-11-05, secure-filesystem-server 2.2.0)</td><td>Respuesta</td><td>1</td></tr>
+              <tr><td>3</td><td><code>CLIENT ➔ SERVER</code></td><td><code>notifications/initialized</code></td><td>Notificación</td><td>—</td></tr>
+              <tr><td>4</td><td><code>SERVER ➔ CLIENT</code></td><td><code>roots/list</code> (Solicitud inversa del servidor)</td><td>Solicitud</td><td>1</td></tr>
+              <tr><td>5</td><td><code>CLIENT ➔ SERVER</code></td><td><code>result</code> (URI de practica2-mcp)</td><td>Respuesta</td><td>1</td></tr>
+              <tr><td>6</td><td><code>CLIENT ➔ SERVER</code></td><td><code>tools/list</code></td><td>Solicitud</td><td>2</td></tr>
+              <tr><td>7</td><td><code>SERVER ➔ CLIENT</code></td><td><code>result</code> (Catálogo de 16 herramientas disponibles)</td><td>Respuesta</td><td>2</td></tr>
+              <tr><td>8</td><td><code>CLIENT ➔ SERVER</code></td><td><code>tools/call</code> (name: "list_directory", path: "datos")</td><td>Solicitud</td><td>3</td></tr>
+              <tr><td>9</td><td><code>SERVER ➔ CLIENT</code></td><td><code>result</code> ("[FILE] calificaciones.csv")</td><td>Respuesta</td><td>3</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size: 1.1rem; margin: 24px 0 12px 0;">📸 Evidencias Gráficas del Inspector</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px;">
+          <div class="preview-img-container">
+            <img src="evidencias/01_conectado.png" alt="Inspector Conectado">
+          </div>
+          <div class="preview-img-container">
+            <img src="evidencias/02_herramienta.png" alt="Llamada a Herramienta">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ACTIVIDAD B -->
+    <section id="tab-actividad-b" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">💻 Actividad B: Un Cliente MCP Mínimo (70 Líneas)</h2>
+          <span class="badge badge-success">Sin Dependencias Externas</span>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">
+          Se construyó un cliente MCP puro en Node.js (<code>cliente_mcp.mjs</code>) comunicándose vía subproceso (<code>spawn</code>) y flujo JSON sobre <code>stdin</code>/<code>stdout</code>.
+        </p>
+
+        <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--primary);">Traza Inicial de 7 Mensajes (`salida/traza.jsonl`)</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Dirección</th>
+                <th>Método / Contenido</th>
+                <th>Tipo</th>
+                <th>ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td><code>CLIENTE ➔ SERVIDOR</code></td><td><code>initialize</code> (versión 2025-06-18, clientInfo: cliente-minimo)</td><td>Solicitud</td><td>1</td></tr>
+              <tr><td>2</td><td><code>SERVIDOR ➔ CLIENTE</code></td><td><code>result</code> (versión 2025-06-18, secure-filesystem-server 2.2.0)</td><td>Respuesta</td><td>1</td></tr>
+              <tr><td>3</td><td><code>CLIENTE ➔ SERVIDOR</code></td><td><code>notifications/initialized</code></td><td>Notificación</td><td>—</td></tr>
+              <tr><td>4</td><td><code>CLIENTE ➔ SERVIDOR</code></td><td><code>tools/list</code></td><td>Solicitud</td><td>2</td></tr>
+              <tr><td>5</td><td><code>SERVIDOR ➔ CLIENTE</code></td><td><code>result</code> (16 tools expuestas con JSON Schema)</td><td>Respuesta</td><td>2</td></tr>
+              <tr><td>6</td><td><code>CLIENTE ➔ SERVIDOR</code></td><td><code>tools/call</code> (list_directory datos)</td><td>Solicitud</td><td>3</td></tr>
+              <tr><td>7</td><td><code>SERVIDOR ➔ CLIENTE</code></td><td><code>result</code> (<code>[FILE] calificaciones.csv</code>)</td><td>Respuesta</td><td>3</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 4px solid var(--primary); padding: 16px 20px; border-radius: 0 8px 8px 0; margin-top: 20px;">
+          <h4 style="color: var(--primary); margin-bottom: 6px;">Análisis de la herramienta `list_directory`:</h4>
+          <ul style="margin-left: 20px; font-size: 0.9rem; color: var(--text-main);">
+            <li><strong>Descripción:</strong> Lista exhaustiva de nombres de ficheros y directorios en una ruta relativa permitida.</li>
+            <li><strong>inputSchema:</strong> Exige un único argumento obligatorio <code>path</code> (string).</li>
+            <li><strong>Anotaciones:</strong> <code>readOnlyHint: true</code> (no altera el disco), <code>idempotentHint: true</code> (ejecución determinista), <code>destructiveHint: false</code> (segura).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: ACTIVIDAD C -->
+    <section id="tab-actividad-c" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🛡️ Actividad C: Ampliar la Conversación y Análisis de Errores</h2>
+          <span class="badge badge-warning">13 Mensajes en Traza</span>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Se añadieron tres solicitudes al cliente: una lectura válida, una lectura prohibida y un método inventado. Las dos últimas fallan de maneras completamente distintas:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
+          <!-- Error de ejecución -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-weight:700; color:var(--accent-amber);">1. Error de Ejecución de Herramienta</span>
+              <span class="badge badge-warning">id: 5</span>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">
+              Llamada a <code>read_text_file</code> con <code>path: "C:/Windows/win.ini"</code>.
+            </p>
+            <pre><code style="font-size:0.78rem;">{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Access denied - path outside allowed directories: C:\\Windows\\win.ini..."
+      }
+    ],
+    "isError": true
+  }
+}</code></pre>
+            <div style="margin-top:12px; font-size:0.85rem; color:var(--text-main);">
+              <strong>Identificación:</strong> Contiene la clave <code>result</code> con la bandera <code>"isError": true</code>. El método fue atendido por el servidor, pero la herramienta falló internamente.
+            </div>
+          </div>
+
+          <!-- Error de protocolo -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-weight:700; color:var(--accent-red);">2. Error de Protocolo</span>
+              <span class="badge badge-danger">id: 6</span>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">
+              Solicitud con método inventado <code>herramientas/inventada</code>.
+            </p>
+            <pre><code style="font-size:0.78rem;">{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "error": {
+    "code": -32601,
+    "message": "Method not found"
+  }
+}</code></pre>
+            <div style="margin-top:12px; font-size:0.85rem; color:var(--text-main);">
+              <strong>Identificación:</strong> No contiene <code>result</code>. Devuelve la clave <code>error</code> con el código estándar JSON-RPC <code>-32601 (Method not found)</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: ACTIVIDAD D -->
+    <section id="tab-actividad-d" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">⚖️ Actividad D: Comparar Dos Clientes y Experimento</h2>
+          <span class="badge badge-info">Negociación de Protocolo</span>
+        </div>
+        
+        <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--primary);">Tabla Comparativa de Inicialización</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Característica</th>
+                <th>Inspector</th>
+                <th>Cliente Mínimo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Nombre y versión del cliente (<code>clientInfo</code>)</strong></td>
+                <td><code>mcp-inspector</code> v2.13.0</td>
+                <td><code>cliente-minimo</code> v1.0.0</td>
+              </tr>
+              <tr>
+                <td><strong>Versión propuesta por el cliente</strong></td>
+                <td><code>2024-11-05</code></td>
+                <td><code>2025-06-18</code></td>
+              </tr>
+              <tr>
+                <td><strong>Versión respondida por el servidor</strong></td>
+                <td><code>2024-11-05</code></td>
+                <td><code>2025-06-18</code></td>
+              </tr>
+              <tr>
+                <td><strong>Capacidades declaradas por el cliente</strong></td>
+                <td><code>roots: { listChanged: true }</code>, <code>sampling: {}</code></td>
+                <td><code>{}</code> (Vacío, sin capacidades opcionales)</td>
+              </tr>
+              <tr>
+                <td><strong>¿El servidor envió solicitud inversa?</strong></td>
+                <td><span class="badge badge-success">Sí: roots/list (id: 1)</span></td>
+                <td><span class="badge badge-danger">No (Usa allowlist de argumentos)</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.3); border-radius: 8px; padding: 18px; margin-top: 20px;">
+          <h4 style="color: var(--accent-purple); margin-bottom: 8px;">🧪 Resultado del Experimento: `protocolVersion: '1999-01-01'`</h4>
+          <p style="font-size: 0.9rem; color: var(--text-main);">
+            Al configurar deliberadamente una versión obsoleta inexistente en el cliente, el servidor <strong>no arrojó un error de protocolo</strong>. En su lugar, el servidor respondió negociando su versión más moderna compatible: <strong>`2025-11-25`</strong>. Esto demuestra que MCP cuenta con negociación de protocolo resiliente hacia adelante y hacia atrás.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: ACTIVIDAD E (DIAGRAMA SECUENCIA) -->
+    <section id="tab-actividad-e" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📊 Actividad E: Diagrama de Secuencia de la Sesión Completa</h2>
+          <span class="badge badge-success">13 Mensajes &bull; 3 Fases</span>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Representación visual de la sesión de 13 mensajes de <code>salida/traza.jsonl</code>:
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="color:var(--primary); font-weight:bold; margin-bottom:4px;">FASE 1: INICIALIZACIÓN</div>
+          <div class="sequence-step seq-req"><span class="seq-num">1</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> initialize (id: 1, protocolVersion: 2025-06-18)</div>
+          <div class="sequence-step seq-res"><span class="seq-num">2</span> <span class="seq-dir">SERVIDOR ➔ CLIENTE:</span> result (id: 1, version: 2025-06-18, secure-filesystem-server 2.2.0)</div>
+          <div class="sequence-step seq-notif"><span class="seq-num">3</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> notifications/initialized (notificación sin id)</div>
+
+          <div style="color:var(--accent-green); font-weight:bold; margin:16px 0 4px 0;">FASE 2: OPERACIÓN (DESCUBRIMIENTO Y EJECUCIÓN)</div>
+          <div class="sequence-step seq-req"><span class="seq-num">4</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> tools/list (id: 2)</div>
+          <div class="sequence-step seq-res"><span class="seq-num">5</span> <span class="seq-dir">SERVIDOR ➔ CLIENTE:</span> result (id: 2, 16 herramientas con inputSchema)</div>
+          <div class="sequence-step seq-req"><span class="seq-num">6</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> tools/call (id: 3, name: list_directory, path: "datos")</div>
+          <div class="sequence-step seq-res"><span class="seq-num">7</span> <span class="seq-dir">SERVIDOR ➔ CLIENTE:</span> result (id: 3, "[FILE] calificaciones.csv")</div>
+          <div class="sequence-step seq-req"><span class="seq-num">8</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> tools/call (id: 4, name: read_text_file, path: "datos/calificaciones.csv")</div>
+          <div class="sequence-step seq-res"><span class="seq-num">9</span> <span class="seq-dir">SERVIDOR ➔ CLIENTE:</span> result (id: 4, contenido CSV de 4 alumnos)</div>
+
+          <div style="color:var(--accent-amber); font-weight:bold; margin:16px 0 4px 0;">FASE 2 (CONTINUACIÓN): CASOS DE ERROR</div>
+          <div class="sequence-step seq-req"><span class="seq-num">10</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> tools/call (id: 5, read_text_file "C:/Windows/win.ini")</div>
+          <div class="sequence-step seq-err-tool"><span class="seq-num">11</span> <span class="seq-dir" style="color:var(--accent-amber);">SERVIDOR ➔ CLIENTE:</span> result con isError: true (id: 5, Access denied - path outside allowed directories)</div>
+          <div class="sequence-step seq-req"><span class="seq-num">12</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> herramientas/inventada (id: 6, método inexistente)</div>
+          <div class="sequence-step seq-err-proto"><span class="seq-num">13</span> <span class="seq-dir" style="color:var(--accent-red);">SERVIDOR ➔ CLIENTE:</span> error -32601 Method not found (id: 6, Error de Protocolo JSON-RPC)</div>
+
+          <div style="color:var(--accent-purple); font-weight:bold; margin:16px 0 4px 0;">FASE 3: CIERRE</div>
+          <div class="sequence-step" style="border-left-color:var(--accent-purple);"><span class="seq-num">14</span> <span class="seq-dir">CLIENTE ➔ SERVIDOR:</span> servidor.stdin.end() (Cierre de tubería stdio / fin de proceso)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: PREGUNTAS DE REFLEXION -->
+    <section id="tab-preguntas" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">❓ Preguntas de Reflexión para la Discusión en Clase</h2>
+          <span class="badge badge-info">Sección 10 del PDF</span>
+        </div>
+
+        <div class="accordion-item open">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <span>1. ¿Por qué una notificación no lleva id? ¿Qué pasaría si el cliente esperara su respuesta?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-content">
+            Las notificaciones en JSON-RPC 2.0 son mensajes unilaterales (*fire-and-forget*) concebidos para emitir eventos informativos sin requerir confirmación ni valor de retorno. El campo <code>id</code> se emplea exclusivamente para correlacionar solicitudes con respuestas. Si un cliente esperara respuesta a una notificación, caería en un bloqueo indefinido (*deadlock*), dado que la especificación prohíbe explícitamente responder a mensajes que carecen de <code>id</code>.
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <span>2. Cuando una herramienta falla, ¿por qué contesta con un result y no con un error?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-content">
+            Porque la invocación de la herramienta se completó correctamente a nivel de protocolo de transporte. El valor devuelto (un <code>result</code> con <code>"isError": true</code>) contiene el mensaje descriptivo del fallo (por ejemplo, ruta inexistente o permiso denegado). Esto permite que el <strong>modelo de lenguaje (agente LLM)</strong> lea la explicación en su contexto conversacional para autocorregirse, ajustar sus parámetros o explicar el problema al usuario de forma natural.
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <span>3. ¿Por qué un servidor stdio que imprime con console.log deja de funcionar?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-content">
+            En el transporte <code>stdio</code>, la salida estándar (<code>stdout</code>) está reservada exclusivamente para el flujo de mensajes JSON-RPC serializados, exactamente uno por línea. Si un desarrollador usa <code>console.log</code>, inserta texto plano en <code>stdout</code>, provocando que el cliente falle con <code>SyntaxError</code> al ejecutar <code>JSON.parse()</code>. Los mensajes de depuración deben enviarse siempre a la salida de error (<code>stderr</code> con <code>console.error</code>).
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <span>4. ¿En qué parte del sistema está el modelo y qué información de esta traza recibe?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-content">
+            El modelo reside en la capa superior del Host (Antigravity o Claude). De esta traza recibe:
+            1. De <code>tools/list</code>: los nombres, descripciones y esquemas de parámetros para inyectarlos en su prompt del sistema.
+            2. El modelo genera el nombre y argumentos enviados en <code>tools/call</code>.
+            3. De las respuestas <code>result</code>: recibe el contenido (texto del archivo, listado o error controlado) como resultado de la función para continuar razonando.
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <span>5. ¿Qué problema resuelve que cliente y servidor declaren capacidades al inicio?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-content">
+            Resuelve el problema de la indeterminación y el desperdicio de tiempo y cómputo. Permite saber de antemano qué primitivas opcionales están soportadas (ej. <code>roots</code>, <code>sampling</code>, <code>prompts</code>), evitando errores en tiempo de ejecución y habilitando degradación elegante (*graceful degradation*).
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <span>6. ¿Qué tendrías que cambiar en tu cliente para conectarlo a un servidor distinto?</span>
+            <span class="accordion-icon">▼</span>
+          </div>
+          <div class="accordion-content">
+            Únicamente la constante de arranque <code>COMANDO</code> en la llamada a <code>spawn</code> (por ejemplo, reemplazando el paquete por <code>@playwright/mcp</code> o cualquier otro servidor). Toda la infraestructura de parsing JSON-RPC, correlación de IDs y manejo de promesas permanece 100% reutilizable.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: GIT Y REPRODUCCION -->
+    <section id="tab-git" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📦 Historial de Commits en Git</h2>
+          <span class="badge badge-success">Branch: main</span>
+        </div>
+        <div class="terminal-box">
+          <div class="terminal-line"><span class="terminal-prompt">commit ecd2740</span> &bull; Actividad E (README completo y diagrama Mermaid)</div>
+          <div class="terminal-line"><span class="terminal-prompt">commit 802aef8</span> &bull; Actividad D (Comparación de inicialización y experimento)</div>
+          <div class="terminal-line"><span class="terminal-prompt">commit e6353b0</span> &bull; Actividad C (Tres solicitudes adicionales y traza de 13 mensajes)</div>
+          <div class="terminal-line"><span class="terminal-prompt">commit e2cb787</span> &bull; Actividad B (Cliente MCP mínimo de 70 líneas y traza inicial)</div>
+          <div class="terminal-line"><span class="terminal-prompt">commit daf8489</span> &bull; Actividad A (Historial exportado y capturas del Inspector)</div>
+          <div class="terminal-line"><span class="terminal-prompt">commit f5ce27f</span> &bull; Estructura inicial (mcp.json y calificaciones.csv)</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      Ingeniería en Sistemas Computacionales &bull; Tópicos Avanzados de Programación<br>
+      Práctica 2: Ver el Protocolo MCP por Dentro &bull; Luis Fernando Salas &bull; 2026
+    </div>
+  </footer>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      const targetContent = document.getElementById('tab-' + tabId);
+      if (targetContent) targetContent.classList.add('active');
+
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    function toggleAccordion(header) {
+      const item = header.parentElement;
+      item.classList.toggle('open');
+    }
+  </script>
+</body>
+</html>
