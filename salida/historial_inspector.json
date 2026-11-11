@@ -1,0 +1,189 @@
+[
+  {
+    "timestamp": "2026-11-10T21:52:10.120Z",
+    "direction": "CLIENT_TO_SERVER",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+          "roots": {
+            "listChanged": true
+          },
+          "sampling": {}
+        },
+        "clientInfo": {
+          "name": "mcp-inspector",
+          "version": "2.13.0"
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:10.285Z",
+    "direction": "SERVER_TO_CLIENT",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+          "tools": {
+            "listChanged": true
+          },
+          "resources": {
+            "listChanged": true
+          }
+        },
+        "serverInfo": {
+          "name": "secure-filesystem-server",
+          "version": "2.2.0"
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:10.290Z",
+    "direction": "CLIENT_TO_SERVER",
+    "message": {
+      "jsonrpc": "2.0",
+      "method": "notifications/initialized"
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:10.310Z",
+    "direction": "SERVER_TO_CLIENT",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "roots/list"
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:10.315Z",
+    "direction": "CLIENT_TO_SERVER",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "roots": [
+          {
+            "uri": "file:///C:/Users/Luis%20Fernando%20Salas/Desktop/Topicos/practica2-mcp",
+            "name": "practica2-mcp"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:10.325Z",
+    "direction": "CLIENT_TO_SERVER",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "tools/list",
+      "params": {}
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:10.450Z",
+    "direction": "SERVER_TO_CLIENT",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "tools": [
+          {
+            "name": "read_text_file",
+            "description": "Read the complete contents of a file as a string. File will be read as utf-8.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": ["path"]
+            }
+          },
+          {
+            "name": "write_file",
+            "description": "Create a new file or completely overwrite an existing file with new content.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": ["path", "content"]
+            }
+          },
+          {
+            "name": "list_directory",
+            "description": "Get a detailed listing of all files and directories in a specified path.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": ["path"]
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "list_allowed_directories",
+            "description": "Returns the list of directories that this server is allowed to access.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:15.800Z",
+    "direction": "CLIENT_TO_SERVER",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "tools/call",
+      "params": {
+        "name": "list_directory",
+        "arguments": {
+          "path": "datos"
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-11-10T21:52:15.912Z",
+    "direction": "SERVER_TO_CLIENT",
+    "message": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[FILE] calificaciones.csv"
+          }
+        ]
+      }
+    }
+  }
+]
