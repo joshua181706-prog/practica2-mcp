@@ -70,5 +70,21 @@ await solicitar('tools/call', {
   arguments: { path: 'datos' },
 });
 
+// Actividad C: Tres solicitudes adicionales
+// 1. Una lectura correcta
+await solicitar('tools/call', {
+  name: 'read_text_file',
+  arguments: { path: 'datos/calificaciones.csv' },
+});
+
+// 2. Una lectura prohibida (fuera de la carpeta permitida)
+await solicitar('tools/call', {
+  name: 'read_text_file',
+  arguments: { path: 'C:/Windows/win.ini' },
+});
+
+// 3. Un metodo que no existe (error de protocolo)
+await solicitar('herramientas/inventada', {});
+
 // 5. Al cerrar la entrada del servidor, este termina.
 servidor.stdin.end();
